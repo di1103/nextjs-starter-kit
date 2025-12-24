@@ -56,7 +56,14 @@
 │  Phase 5: 評価 (Evaluate)                                    │
 │  ├── テスト実行                                              │
 │  ├── 動作確認                                                │
-│  └── 品質評価                                                │
+│  └── 品質評価（定量基準）                                    │
+└─────────────────────────────────────────────────────────────┘
+                              ↓
+┌─────────────────────────────────────────────────────────────┐
+│  Phase 5.5: セキュリティ診断                                 │
+│  ├── security-audit.md に従って診断                         │
+│  ├── Critical/High は即時修正                               │
+│  └── 診断レポート生成                                        │
 └─────────────────────────────────────────────────────────────┘
                               ↓
                     ┌─────────────┐
@@ -84,6 +91,14 @@
 │  ├── 移行サマリー                                            │
 │  ├── 未移行機能リスト（あれば）                              │
 │  └── 次のステップ                                            │
+└─────────────────────────────────────────────────────────────┘
+                              ↓
+┌─────────────────────────────────────────────────────────────┐
+│  Phase 9: データ移行                                         │
+│  ├── マスタデータ: scripts/seed/で投入                      │
+│  ├── ユーザー/トランザクション: 移行スクリプト               │
+│  ├── データ件数検証                                          │
+│  └── パスワードリセット対応                                  │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -159,14 +174,61 @@ Task(subagent_type="Explore")
 
 レガシー技術をスターターキット技術にマッピング:
 
+#### Node.js系
+
 | レガシー | スターターキット |
 |---------|-----------------|
 | Express API | Server Actions |
 | Sequelize | Drizzle ORM |
+| Prisma | Drizzle ORM |
 | EJS/Pug | React Server Components |
-| JWT | Better Auth |
-| MySQL | PostgreSQL (Supabase) |
+| JWT (jsonwebtoken) | Better Auth |
+| Passport.js | Better Auth |
+| MySQL (mysql2) | PostgreSQL (Supabase) |
+| MongoDB (mongoose) | PostgreSQL (Supabase) |
+
+#### Python系
+
+| レガシー | スターターキット |
+|---------|-----------------|
+| Django Views | Server Actions |
+| Flask Routes | Server Actions |
+| FastAPI | Server Actions + API Routes |
+| Django ORM | Drizzle ORM |
+| SQLAlchemy | Drizzle ORM |
+| Django Templates | React Server Components |
+| Jinja2 | React Server Components |
+| Django Auth | Better Auth |
+
+#### Ruby系
+
+| レガシー | スターターキット |
+|---------|-----------------|
+| Rails Controllers | Server Actions |
+| ActiveRecord | Drizzle ORM |
+| ERB/Haml | React Server Components |
+| Devise | Better Auth |
+
+#### PHP系
+
+| レガシー | スターターキット |
+|---------|-----------------|
+| Laravel Controllers | Server Actions |
+| Eloquent ORM | Drizzle ORM |
+| Blade Templates | React Server Components |
+| Laravel Auth | Better Auth |
+| WordPress | 完全再構築推奨 |
+
+#### 共通
+
+| レガシー | スターターキット |
+|---------|-----------------|
 | REST API | Server Actions + API Routes |
+| GraphQL | Server Actions |
+| MySQL | PostgreSQL (Supabase) |
+| SQLite | PostgreSQL (Supabase) |
+| Redis (セッション) | Better Auth (DB) |
+| S3/ローカルストレージ | Supabase Storage |
 
 ### Step 2: 移行優先順位
 
@@ -351,6 +413,46 @@ pnpm test:e2e --grep "F-001"
 | UI/UX | ⚠️ 要確認 | ボタン配置が異なる |
 | パフォーマンス | ✅ Pass | |
 
+### 定量的評価基準
+
+| 指標 | 基準値 | 測定方法 |
+|------|--------|---------|
+| テストカバレッジ | ≥80% | `pnpm test:coverage` |
+| ビルド成功 | 100% | `pnpm build` |
+| 型エラー | 0件 | `pnpm tsc --noEmit` |
+| Lintエラー | 0件 | `pnpm lint` |
+
+---
+
+## Phase 5.5: セキュリティ診断
+
+移行したコードに対して `.claude/skills/security-audit.md` を実行。
+
+### 診断対象
+
+今回移行した機能に関連するファイル:
+- `lib/actions/[機能名].ts`
+- `lib/db/schemas/[機能名].ts`
+- `app/[機能]/components/*.tsx`
+
+### 診断項目
+
+| カテゴリ | 確認内容 |
+|---------|---------|
+| AUTH | 認証チェック漏れがないか |
+| INPUT | Zodバリデーションが適用されているか |
+| LEAK | パスワード等の機密情報が露出していないか |
+| INJ | SQLインジェクション対策されているか |
+
+### 診断結果の対応
+
+| 重大度 | 対応 |
+|--------|------|
+| Critical | Phase 6で即時修正（ブロッカー） |
+| High | Phase 6で修正 |
+| Medium | 記録して後日対応 |
+| Low | 任意 |
+
 ---
 
 ## Phase 6: 修正 (Fix)
@@ -435,10 +537,99 @@ pnpm test:e2e --grep "F-001"
 - [ ] トランザクションデータ: 別途移行スクリプト
 
 ### 次のステップ
-1. 本番データの移行
-2. 動作確認
-3. 切り替え
+→ Phase 9: データ移行に進みます
 ```
+
+---
+
+## Phase 9: データ移行
+
+スキーマ移行完了後、本番データを移行します。
+
+### Step 1: データ分類
+
+| 種別 | 例 | 移行方法 |
+|------|-----|---------|
+| マスタデータ | カテゴリ、設定 | scripts/seed/で再作成 |
+| ユーザーデータ | ユーザー、プロフィール | 移行スクリプトで変換 |
+| トランザクション | 注文、履歴 | 移行スクリプトで変換 |
+| 添付ファイル | 画像、ドキュメント | ストレージ移行 |
+
+### Step 2: 移行スクリプト作成
+
+```typescript
+// scripts/migrate-data/users.ts
+import { legacyDb } from './legacy-connection';
+import { db } from '@/lib/db';
+import { users } from '@/lib/db/schemas';
+
+export async function migrateUsers() {
+  // レガシーDBからデータ取得
+  const legacyUsers = await legacyDb.query('SELECT * FROM users');
+
+  // データ変換
+  const newUsers = legacyUsers.map(u => ({
+    id: u.id.toString(),
+    email: u.email,
+    name: u.name || u.username,
+    // passwordHashは再設定が必要（セキュリティ上）
+    createdAt: new Date(u.created_at),
+  }));
+
+  // 新DBに挿入
+  await db.insert(users).values(newUsers).onConflictDoNothing();
+
+  console.log(`✅ users: ${newUsers.length}件移行完了`);
+}
+```
+
+### Step 3: 移行実行
+
+```bash
+# 開発環境でテスト
+pnpm migrate:data --env=development
+
+# 本番環境で実行
+pnpm migrate:data --env=production
+```
+
+### Step 4: データ検証
+
+```markdown
+## データ検証チェックリスト
+
+| テーブル | レガシー件数 | 新DB件数 | 差分 | 状態 |
+|---------|------------|---------|------|------|
+| users | 1,000 | 1,000 | 0 | ✅ |
+| products | 500 | 500 | 0 | ✅ |
+| orders | 2,000 | 1,998 | 2 | ⚠️ 要確認 |
+```
+
+### Step 5: パスワードリセット対応
+
+セキュリティ上、パスワードハッシュは移行しない場合:
+
+1. 全ユーザーに「パスワードリセット」メール送信
+2. または初回ログイン時にパスワード再設定を強制
+
+```typescript
+// パスワードリセットメール一括送信
+export async function sendPasswordResetEmails() {
+  const allUsers = await db.select().from(users);
+
+  for (const user of allUsers) {
+    await sendPasswordResetEmail(user.email);
+  }
+}
+```
+
+### 完了条件
+
+- [ ] マスタデータ移行完了
+- [ ] ユーザーデータ移行完了
+- [ ] トランザクションデータ移行完了
+- [ ] データ件数検証OK
+- [ ] サンプルデータの動作確認OK
 
 ---
 
@@ -516,10 +707,49 @@ pnpm test:e2e --grep "F-001"
 
 ---
 
+## エラーハンドリング
+
+### Phase別エラー対処
+
+| Phase | エラー種別 | 対処 |
+|-------|-----------|------|
+| 解析 | ファイル読めない | ユーザーにパス確認依頼 |
+| 解析 | 技術スタック不明 | ユーザーに技術情報を質問 |
+| 構築 | 変換不可能な構文 | 手動変換が必要と記録、スキップ |
+| 構築 | DBスキーマ変換失敗 | 差分を記録し、ユーザーに確認 |
+| 比較 | 機能差分検出 | 差分レポートを生成し継続 |
+| 評価 | テスト失敗 | Phase 6（修正）へ移行 |
+| 評価 | ビルドエラー | エラー修正後に再評価 |
+
+### 自動リカバリー
+
+```
+エラー検出 → 原因分析 → 自動修正可能？
+    ↓                         ↓
+   Yes                       No
+    ↓                         ↓
+  自動修正            ユーザーに報告・確認
+    ↓                         ↓
+  再実行              指示を受けて再開
+```
+
+### ブロッカー記録
+
+解決できないエラーは進捗ファイルに記録:
+
+```markdown
+## ブロッカー
+
+| ID | Phase | 機能 | エラー内容 | 状態 |
+|----|-------|------|-----------|------|
+| B-001 | 構築 | F-003 | 決済API変換不可 | 未解決 |
+```
+
+---
+
 ## 注意事項
 
 - レガシーコードは読み取り専用（変更しない）
 - 移行は機能単位で段階的に実施
 - 各機能の移行完了後にテストを実行
-- データ移行は別途計画（本スキルではスキーマ移行のみ）
 - 不明点はユーザーに確認（AskUserQuestion）
