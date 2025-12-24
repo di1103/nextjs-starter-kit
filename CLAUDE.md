@@ -145,6 +145,7 @@ Phase 0: Supabaseプロジェクト作成（スキップ可）
     → Phase 1: 顧客情報探索 → Phase 2: 設計計画 → Phase 3: 設計書作成
     → Phase 4: 設計検証 → Phase 5: 実装 → Phase 6: テスト実行
     → Phase 7: セキュリティ診断 → Phase 8: 完了報告
+    → Phase 9: Vercelデプロイ（スキップ可）
 ```
 
 ### 前提条件
