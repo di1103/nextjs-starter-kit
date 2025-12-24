@@ -178,6 +178,45 @@ export const products = pgTable('products', {
 });
 ```
 
+### Step 1.5: シードデータ（マスタデータがある場合）
+
+マスタデータ（カテゴリ、設定値など）が必要な場合、シードファイルを作成。
+
+1. `scripts/seed/[name].ts` を作成
+2. `scripts/seed/index.ts` から呼び出し
+3. `package.json` にスクリプト追加（必要に応じて）
+
+```typescript
+// scripts/seed/categories.ts
+import { db, cleanup } from './index';
+import { categories } from '@/lib/db/schemas';
+
+export async function seedCategories() {
+  const data = [
+    { id: 'cat-1', name: '電子機器', slug: 'electronics' },
+    { id: 'cat-2', name: '衣類', slug: 'clothing' },
+    { id: 'cat-3', name: '書籍', slug: 'books' },
+  ];
+
+  await db.insert(categories).values(data).onConflictDoNothing();
+  console.log(`✅ categories: ${data.length}件`);
+}
+```
+
+#### シードデータの分類
+
+| 種別 | 配置 | 実行タイミング |
+|------|------|---------------|
+| マスタデータ | `scripts/seed/master/[name].ts` | 本番・開発両方 |
+| 開発用データ | `scripts/seed/dev/[name].ts` | 開発環境のみ |
+| 管理者作成 | `scripts/seed/admin.ts` | 初回セットアップ |
+
+#### 注意事項
+
+- `onConflictDoNothing()` で冪等性を担保
+- IDは固定値を使用（UUID生成しない）
+- 本番環境で実行するマスタデータは設計書に記載
+
 ---
 
 ### Step 2: バリデーション
