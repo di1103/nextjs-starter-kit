@@ -132,6 +132,7 @@ docs/
 | コマンド | 起動スキル | 説明 |
 |---------|-----------|------|
 | 「要件定義駆動開発を開始して」 | `/design-cycle` | **設計→実装→テスト→セキュリティ診断**まで一気通貫 |
+| 「レガシー移行を開始して」 | `/legacy-migrate` | 既存プロジェクトを解析・移行（ループ型） |
 | 「設計書を作成して」 | `/design-doc` | 個別の設計書を作成 |
 | 「実装して」 | `/implement` | 設計書に基づき実装 |
 | 「バグ修正して」 | `/bug-fix` | バグ調査・修正 |
@@ -148,9 +149,22 @@ Phase 0: Supabaseプロジェクト作成（スキップ可）
     → Phase 9: Vercelデプロイ（スキップ可）
 ```
 
+### `/legacy-migrate` の実行フロー
+
+```
+Phase 1: 解析 → Phase 2: 移行計画
+    → [ループ開始]
+    → Phase 3: 構築 → Phase 4: 比較 → Phase 5: 評価
+    → (NG) Phase 6: 修正 → Phase 4へ戻る
+    → (OK) Phase 7: 進捗記録 → 次の機能へ（Phase 3へ）
+    → [全機能完了]
+    → Phase 8: 完了報告
+```
+
 ### 前提条件
 
-- `docs/customer/` に顧客情報（要件定義書・打ち合わせメモ等）を配置済みであること
+- `/design-cycle`: `docs/customer/` に顧客情報（要件定義書・打ち合わせメモ等）を配置済み
+- `/legacy-migrate`: `docs/customer/legacy_project/` に既存プロジェクトを配置済み
 
 ---
 
