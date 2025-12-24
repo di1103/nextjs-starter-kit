@@ -5,186 +5,28 @@ description: 要件定義駆動開発を実行するスキル。顧客情報か�
 
 # 要件定義駆動開発スキル
 
-顧客要件から**全ての設計書を一気に作成**するスキルです。
-
----
-
-## 実行タイミング
-
-ユーザーから以下のような指示を受けたとき:
-- 「要件定義駆動開発を開始して」
-- 「全設計書を作成して」
-- 「設計を完走して」
+顧客要件から**設計→実装→テスト→デプロイまで一気に実行**するスキルです。
 
 ---
 
 ## 全体フロー
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│  Phase 0: Supabaseプロジェクト作成                           │
-│  ├── プロジェクト名・リージョン・DBパスワードを取得          │
-│  ├── supabase projects create でプロジェクト作成             │
-│  ├── supabase link でローカルリンク                         │
-│  └── .env に接続情報を書き込み                               │
-└─────────────────────────────────────────────────────────────┘
-                              ↓
-┌─────────────────────────────────────────────────────────────┐
-│  Phase 1: 顧客情報探索 (Explore)                             │
-│  └── docs/customer/* から要件を抽出                          │
-└─────────────────────────────────────────────────────────────┘
-                              ↓
-┌─────────────────────────────────────────────────────────────┐
-│  Phase 2: 設計計画 (Plan)                                    │
-│  ├── 要件をID採番・構造化                                    │
-│  ├── 設計書一覧を決定                                        │
-│  └── 進捗ファイルを生成                                      │
-└─────────────────────────────────────────────────────────────┘
-                              ↓
-┌─────────────────────────────────────────────────────────────┐
-│  Phase 3: 設計書一括作成                                     │
-│  ├── design-docs-list の順に全設計書を作成                   │
-│  ├── 1件作成ごとに進捗ファイルを更新                         │
-│  └── 全件完了まで繰り返し                                    │
-└─────────────────────────────────────────────────────────────┘
-                              ↓
-┌─────────────────────────────────────────────────────────────┐
-│  Phase 4: 設計完了検証                                       │
-│  ├── 要件カバー率 100% を確認                                │
-│  ├── トレーサビリティ検証                                    │
-│  └── 設計完了レポート生成                                    │
-└─────────────────────────────────────────────────────────────┘
-                              ↓
-┌─────────────────────────────────────────────────────────────┐
-│  Phase 5: 実装                                               │
-│  ├── implement.md に従って全設計書を実装                     │
-│  ├── DBスキーマ → バリデーション → Actions → UI              │
-│  └── 各設計書の実装チェックリストを完了                      │
-└─────────────────────────────────────────────────────────────┘
-                              ↓
-┌─────────────────────────────────────────────────────────────┐
-│  Phase 6: テスト実行                                         │
-│  ├── pnpm test:run でUnitテスト実行                         │
-│  ├── 失敗があれば修正して再実行                              │
-│  └── 全パスを確認                                            │
-└─────────────────────────────────────────────────────────────┘
-                              ↓
-┌─────────────────────────────────────────────────────────────┐
-│  Phase 7: セキュリティ診断                                   │
-│  ├── security-audit.md に従って診断                         │
-│  ├── Critical/High 項目を自動修正                           │
-│  └── 診断レポート生成                                        │
-└─────────────────────────────────────────────────────────────┘
-                              ↓
-┌─────────────────────────────────────────────────────────────┐
-│  Phase 8: 完了報告                                           │
-│  ├── 全体サマリー出力                                        │
-│  ├── 作成ファイル一覧                                        │
-│  └── セキュリティ診断結果                                    │
-└─────────────────────────────────────────────────────────────┘
-                              ↓
-┌─────────────────────────────────────────────────────────────┐
-│  Phase 9: Vercelデプロイ                                     │
-│  ├── Vercelプロジェクト作成（vercel link）                   │
-│  ├── 環境変数設定（vercel env add）                          │
-│  ├── プロダクションデプロイ（vercel --prod）                 │
-│  └── デプロイURL出力                                         │
-└─────────────────────────────────────────────────────────────┘
+Phase 0: Supabase作成（スキップ可）
+    → Phase 1: 顧客情報探索 → Phase 2: 設計計画
+    → Phase 3: 設計書一括作成 → Phase 4: 設計完了検証
+    → Phase 5: 実装 → Phase 6: テスト実行
+    → Phase 7: セキュリティ診断 → Phase 8: 完了報告
+    → Phase 9: Vercelデプロイ（スキップ可）
 ```
 
 ---
 
 ## Phase 0: Supabaseプロジェクト作成
 
-開発開始前にSupabaseプロジェクトを作成し、データベース環境を準備します。
+詳細手順 → [references/supabase-setup.md](references/supabase-setup.md)
 
-### 前提条件
-
-- Supabase CLIがインストール済み（`brew install supabase/tap/supabase`）
-- `supabase login` で認証済み
-
-### Step 1: ログイン確認
-
-```bash
-supabase projects list
-```
-
-エラーが出る場合は、ユーザーに `supabase login` を依頼。
-
-### Step 2: ユーザーから情報を取得
-
-AskUserQuestionツールで以下を確認:
-
-| 項目 | 説明 | 例 |
-|------|------|-----|
-| プロジェクト名 | Supabase上の表示名 | my-awesome-app |
-| リージョン | データセンターの場所 | ap-northeast-1（東京） |
-| DBパスワード | PostgreSQLのパスワード | 12文字以上推奨 |
-
-### Step 3: 組織ID取得
-
-```bash
-supabase orgs list
-```
-
-複数ある場合はユーザーに選択を依頼。
-
-### Step 4: プロジェクト作成
-
-```bash
-supabase projects create [プロジェクト名] \
-  --org-id [組織ID] \
-  --db-password [DBパスワード] \
-  --region ap-northeast-1
-```
-
-### Step 5: プロジェクトリンク
-
-```bash
-supabase link --project-ref [プロジェクトRef]
-```
-
-プロジェクトRefは作成時の出力から取得。
-
-### Step 6: 環境変数設定
-
-`.env` ファイルに以下を書き込み:
-
-```bash
-# Supabase
-DATABASE_URL=postgresql://postgres.[プロジェクトRef]:[DBパスワード]@aws-0-ap-northeast-1.pooler.supabase.com:6543/postgres?pgbouncer=true
-DIRECT_URL=postgresql://postgres.[プロジェクトRef]:[DBパスワード]@aws-0-ap-northeast-1.pooler.supabase.com:5432/postgres
-
-# Supabase API
-NEXT_PUBLIC_SUPABASE_URL=https://[プロジェクトRef].supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=[anon key]
-SUPABASE_SERVICE_ROLE_KEY=[service role key]
-```
-
-API Keyは以下で取得:
-```bash
-supabase projects api-keys --project-ref [プロジェクトRef]
-```
-
-### Step 7: 初期スキーマ適用
-
-```bash
-pnpm db:push
-```
-
-### 完了条件
-
-- [ ] Supabaseプロジェクトが作成済み
-- [ ] ローカルプロジェクトがリンク済み
-- [ ] `.env` に接続情報が設定済み
-- [ ] `pnpm db:push` が成功
-
-### スキップ条件
-
-以下の場合はPhase 0をスキップ:
-
-- `.env` に `DATABASE_URL` が既に設定済み
-- ユーザーが「Supabaseは設定済み」と回答
+**スキップ条件**: `.env` に `DATABASE_URL` が既に設定済み
 
 ---
 
@@ -194,7 +36,6 @@ pnpm db:push
 Task(subagent_type="Explore")
 ├── docs/customer/requirements/ の全ファイルを探索
 ├── docs/customer/meeting-notes/ の全ファイルを探索
-├── docs/customer/estimates/ の関連情報を探索
 └── 要件・決定事項・制約を抽出
 ```
 
@@ -207,149 +48,32 @@ Task(subagent_type="Explore")
 ```
 Task(subagent_type="Plan")
 ├── 要件をID採番（REQ-XXX-NNN形式）
-│   - FUN: 機能要件
-│   - UI: UI要件
-│   - SEC: セキュリティ要件
-│   - PER: 性能要件
 ├── 設計書一覧を決定（DOC-XXX-NNN形式）
-├── 要件と設計書の紐付け
 └── 作成順序を決定（依存関係考慮）
 ```
 
-**生成ファイル**:
-- `docs/progress/requirements-list.md`
-- `docs/progress/design-docs-list.md`
-- `docs/progress/traceability-matrix.md`
-- `docs/progress/cycle-status.md`
+**生成ファイル**: `docs/progress/` 配下
+- requirements-list.md
+- design-docs-list.md
+- traceability-matrix.md
+- cycle-status.md
+
+フォーマット → [references/progress-formats.md](references/progress-formats.md)
 
 ---
 
 ## Phase 3: 設計書一括作成
 
-**design-docs-list.md に記載された全設計書を順に作成**
+design-docs-list.md に記載された全設計書を順に作成:
 
-各設計書の作成手順:
-
-### 3.1 機能設計書 (docs/design/features/xxx.md)
-
-```markdown
-# [機能名]
-
-## 概要
-[この機能の目的・背景]
-
-## 要件
-- [ ] REQ-XXX-001: 要件1
-- [ ] REQ-XXX-002: 要件2
-
-## データベース設計
-
-### テーブル
-| テーブル名 | 説明 |
-|-----------|------|
-| xxx | ... |
-
-### スキーマ定義
-```typescript
-// lib/db/schemas/xxx.ts
-export const xxx = pgTable("xxx", {
-  // フィールド定義
-});
-```
-
-## API / Server Actions
-
-### [アクション名]
-- **ファイル**: `lib/actions/xxx.ts`
-- **引数**: `{ field1: string }`
-- **戻り値**: `{ success: boolean, data?: T }`
-- **権限**: admin / user / public
-
-## バリデーション
-```typescript
-// lib/validations/xxx.ts
-export const xxxSchema = z.object({
-  // スキーマ定義
-});
-```
-
-## 実装チェックリスト
-- [ ] DBスキーマ作成
-- [ ] Server Actions作成
-- [ ] バリデーション作成
-- [ ] UI実装
-- [ ] 動作確認
-
-## テスト観点
-### 正常系
-- ...
-### 異常系
-- ...
-
-## 備考
-[実装時の注意点]
-```
-
-### 3.2 UI設計書 (docs/design/ui/xxx.md)
-
-```markdown
-# [画面名]
-
-## 概要
-[この画面の目的]
-
-## アクセス権限
-- admin: ✅
-- user: ✅ / ❌
-- 未ログイン: ❌
-
-## ワイヤーフレーム
-```
-┌─────────────────────────────────┐
-│  ヘッダー                        │
-├─────────────────────────────────┤
-│                                 │
-│  コンテンツエリア                 │
-│                                 │
-└─────────────────────────────────┘
-```
-
-## コンポーネント構成
-- `app/components/Xxx.tsx` - メインコンポーネント
-- `app/components/XxxItem.tsx` - 子コンポーネント
-
-## 使用するUIコンポーネント（shadcn/ui）
-- Button
-- Card
-- Dialog
-
-## 状態管理
-[useState / useReducer / 外部ライブラリ]
-
-## データ取得
-[Server Component / useEffect / Server Actions]
-
-## 実装チェックリスト
-- [ ] コンポーネント作成
-- [ ] レスポンシブ対応
-- [ ] ローディング状態
-- [ ] エラー状態
-- [ ] 動作確認
-```
-
-### 3.3 作成後の更新
-
-各設計書作成後:
-1. `design-docs-list.md` の状態を「完了」に更新
-2. `traceability-matrix.md` のカバー状態を「✅」に更新
-3. `cycle-status.md` の進捗を更新
-4. `docs/design/index.md` に設計書を追加
+1. 機能設計書: `docs/design/features/xxx.md`
+2. UI設計書: `docs/design/ui/xxx.md`
+3. `docs/design/index.md` に追加
+4. 進捗ファイルを更新
 
 ---
 
 ## Phase 4: 設計完了検証
-
-### 完了条件チェック
 
 | 条件 | 基準 |
 |------|------|
@@ -357,140 +81,49 @@ export const xxxSchema = z.object({
 | 設計書完了率 | 100% |
 | トレーサビリティ | 孤児なし |
 
-### 設計完了レポート出力
-
-```markdown
-## 設計フェーズ完了レポート
-
-### サマリー
-- 要件数: XX件
-- 設計書数: XX件
-- 要件カバー率: 100%
-
-### 作成された設計書
-
-#### 機能設計書
-| 設計書 | ファイル | カバー要件 |
-|--------|----------|-----------|
-| ... | features/xxx.md | REQ-XXX-001 |
-
-#### UI設計書
-| 設計書 | ファイル | カバー要件 |
-|--------|----------|-----------|
-| ... | ui/xxx.md | REQ-UI-001 |
-
-→ 実装フェーズに進みます
-```
+設計完了レポートを出力。
 
 ---
 
 ## Phase 5: 実装
 
-`.claude/skills/implement.md` に従って全設計書を実装します。
+`.claude/skills/implement/SKILL.md` に従って全設計書を実装。
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│  各設計書に対して以下を順次実行                               │
-│  ├── Step 1: DBスキーマ作成                                  │
-│  ├── Step 2: バリデーション作成                              │
-│  ├── Step 3: Server Actions作成                              │
-│  ├── Step 4: UI実装                                          │
-│  ├── Step 5: テスト作成                                      │
-│  └── Step 6: 動作確認                                        │
-└─────────────────────────────────────────────────────────────┘
+各設計書に対して:
+├── Step 1: DBスキーマ作成
+├── Step 2: バリデーション作成
+├── Step 3: Server Actions作成
+├── Step 4: UI実装
+├── Step 5: テスト作成
+└── Step 6: 動作確認
 ```
 
-### 実装の進め方
-
-1. `docs/progress/design-docs-list.md` から「設計完了」の設計書を取得
-2. 依存関係順に実装（implement.md の実装順序の基本原則に従う）
-3. 各設計書の「実装チェックリスト」を完了させる
-4. 実装完了後、状態を「実装完了」に更新
-
-### DBスキーマ変更時
-
-ユーザーに以下を依頼:
-```
-pnpm db:push
-```
+**DBスキーマ変更時**: ユーザーに `pnpm db:push` 実行を依頼
 
 ---
 
 ## Phase 6: テスト実行
 
-`.claude/skills/guidelines/testing.md` に従ってテストを実行します。
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│  Step 1: Unitテスト実行                                      │
-│  └── pnpm test:run                                          │
-├─────────────────────────────────────────────────────────────┤
-│  Step 2: 失敗テストの修正                                    │
-│  └── 失敗したテストがあれば修正して再実行                    │
-├─────────────────────────────────────────────────────────────┤
-│  Step 3: E2Eテスト実行（必要に応じて）                        │
-│  └── pnpm test:e2e                                          │
-└─────────────────────────────────────────────────────────────┘
+```bash
+pnpm test:run
 ```
 
-### テスト完了条件
-
-- [ ] `pnpm test:run` が全てパス
-- [ ] 設計書の「テスト観点」が全てカバー済み
-- [ ] Critical なテスト観点の漏れがない
-
-### テスト失敗時の対応
-
-1. エラー内容を確認
-2. 該当するコードを修正
-3. 再度テスト実行
-4. 全パスするまで繰り返し
+失敗があれば修正して再実行。全パスするまで繰り返し。
 
 ---
 
 ## Phase 7: セキュリティ診断
 
-`.claude/skills/security-audit.md` に従ってセキュリティ診断を実行します。
+`.claude/skills/security-audit/SKILL.md` に従って診断。
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│  Step 1: 対象ファイルの特定                                  │
-│  ├── lib/actions/*.ts                                       │
-│  ├── lib/db/schemas/*.ts                                    │
-│  └── app/**/components/*.tsx                                │
-├─────────────────────────────────────────────────────────────┤
-│  Step 2: 診断チェック実行                                    │
-│  ├── AUTH: 認証・認可                                        │
-│  ├── INPUT: 入力検証                                         │
-│  ├── LEAK: データ漏洩                                        │
-│  ├── INJ: インジェクション対策                               │
-│  └── CONFIG: 設定・環境変数                                  │
-├─────────────────────────────────────────────────────────────┤
-│  Step 3: Critical/High 項目の修正                            │
-│  └── 検出された問題を自動修正                                │
-├─────────────────────────────────────────────────────────────┤
-│  Step 4: 診断レポート生成                                    │
-│  └── docs/progress/security-audit/ に保存                   │
-└─────────────────────────────────────────────────────────────┘
-```
-
-### セキュリティ診断完了条件
-
-- [ ] Critical 項目: 0件
-- [ ] High 項目: 0件（または対応計画あり）
-- [ ] 診断レポート生成済み
-
-### Critical/High 検出時
-
-1. 自動修正可能な場合は即座に修正
-2. 修正後、Phase 6（テスト実行）に戻って再確認
-3. 全パスを確認
+- Critical/High 項目を自動修正
+- 修正後、Phase 6 に戻って再確認
+- 診断レポートを `docs/progress/security-audit/` に保存
 
 ---
 
 ## Phase 8: 完了報告
-
-全フェーズ完了後、最終レポートを出力します。
 
 ```markdown
 ## 要件定義駆動開発 完了レポート
@@ -502,30 +135,9 @@ pnpm db:push
 - テスト: 全パス ✅
 - セキュリティ: Critical/High 0件 ✅
 
-### 作成された設計書
-[設計書一覧]
-
 ### 作成されたファイル
-#### DBスキーマ
-- lib/db/schemas/xxx.ts
+[ファイル一覧]
 
-#### Server Actions
-- lib/actions/xxx.ts
-
-#### コンポーネント
-- app/xxx/components/Xxx.tsx
-
-#### テスト
-- lib/validations/xxx.test.ts
-- lib/actions/xxx.test.ts
-
-### セキュリティ診断結果
-- Critical: 0件
-- High: 0件
-- Medium: X件（任意対応）
-- Low: X件（任意対応）
-
-### 次のステップ
 → Phase 9: Vercelデプロイに進みます
 ```
 
@@ -533,173 +145,9 @@ pnpm db:push
 
 ## Phase 9: Vercelデプロイ
 
-プロダクション環境にデプロイします。
+詳細手順 → [references/vercel-deploy.md](references/vercel-deploy.md)
 
-### 前提条件
-
-- Vercel CLIがインストール済み（`npm i -g vercel`）
-- `vercel login` で認証済み
-
-### Step 1: ログイン確認
-
-```bash
-vercel whoami
-```
-
-エラーが出る場合は、ユーザーに `vercel login` を依頼。
-
-### Step 2: プロジェクトリンク
-
-```bash
-vercel link
-```
-
-対話形式で以下を設定:
-- Vercelアカウント/チームを選択
-- 既存プロジェクトにリンク or 新規作成
-- プロジェクト名を入力
-
-### Step 3: 環境変数設定
-
-`.env` の内容をVercelに設定:
-
-```bash
-# 各環境変数を追加
-vercel env add DATABASE_URL production
-vercel env add DIRECT_URL production
-vercel env add NEXT_PUBLIC_SUPABASE_URL production
-vercel env add NEXT_PUBLIC_SUPABASE_ANON_KEY production
-vercel env add SUPABASE_SERVICE_ROLE_KEY production
-vercel env add BETTER_AUTH_SECRET production
-vercel env add BETTER_AUTH_URL production
-```
-
-または一括で:
-```bash
-vercel env pull .env.local  # 確認用
-```
-
-### Step 4: プロダクションデプロイ
-
-```bash
-vercel --prod
-```
-
-### Step 5: デプロイ確認
-
-デプロイ完了後、以下を確認:
-- [ ] デプロイURLにアクセス可能
-- [ ] ログイン機能が動作
-- [ ] DBに接続できている
-
-### 完了条件
-
-- [ ] Vercelプロジェクトが作成済み
-- [ ] 環境変数が設定済み
-- [ ] プロダクションデプロイ成功
-- [ ] 動作確認完了
-
-### 最終レポート出力
-
-```markdown
-## 要件定義駆動開発 完了レポート（最終）
-
-### デプロイ情報
-- **本番URL**: https://[project-name].vercel.app
-- **Vercelダッシュボード**: https://vercel.com/[team]/[project]
-- **Supabaseダッシュボード**: https://supabase.com/dashboard/project/[ref]
-
-### サマリー
-- 要件数: XX件
-- 設計書数: XX件
-- 実装ファイル数: XX件
-- テスト: 全パス ✅
-- セキュリティ: Critical/High 0件 ✅
-- デプロイ: 成功 ✅
-
-### 次のステップ
-- カスタムドメインの設定（任意）
-- 本番環境での動作確認
-- 監視・アラートの設定（任意）
-```
-
-### スキップ条件
-
-以下の場合はPhase 9をスキップ:
-
-- ユーザーが「デプロイは後で」と回答
-- ローカル開発のみの場合
-
----
-
-## 進捗ファイルフォーマット
-
-### requirements-list.md
-
-```markdown
-# 要件一覧
-
-最終更新: YYYY-MM-DD HH:MM
-
-## 機能要件 (FUN)
-
-| 要件ID | 要件名 | 詳細 | 出典 | 優先度 | 状態 |
-|--------|--------|------|------|--------|------|
-| REQ-FUN-001 | ... | ... | requirements/xxx.md#L10 | 高 | 設計完了 |
-```
-
-### design-docs-list.md
-
-```markdown
-# 設計書一覧
-
-最終更新: YYYY-MM-DD HH:MM
-
-## 統計
-- 完了: X / Y (100%)
-
-## 機能設計書
-
-| 設計書ID | 設計書名 | ファイル | 状態 | カバー要件 |
-|----------|----------|----------|------|-----------|
-| DOC-FUN-001 | ... | features/xxx.md | 完了 | REQ-FUN-001 |
-```
-
-### traceability-matrix.md
-
-```markdown
-# トレーサビリティマトリクス
-
-最終更新: YYYY-MM-DD HH:MM
-
-## カバレッジ: XX/XX (100%)
-
-| 要件ID | 要件名 | 設計書 | 状態 |
-|--------|--------|--------|------|
-| REQ-FUN-001 | ... | DOC-FUN-001 | ✅ 完全 |
-```
-
-### cycle-status.md
-
-```markdown
-# サイクル状態
-
-最終更新: YYYY-MM-DD HH:MM
-
-## 現在のフェーズ
-**完了** ✅
-
-## 進捗
-- [x] 要件抽出完了
-- [x] 設計書一覧確定
-- [x] 設計書作成 (X/X 完了)
-- [x] トレーサビリティ検証
-- [x] 完了レビュー
-
-## 品質指標
-- 要件カバー率: 100%
-- 設計書完了率: 100%
-```
+**スキップ条件**: ユーザーが「デプロイは後で」と回答
 
 ---
 
@@ -707,17 +155,10 @@ vercel --prod
 
 ### Claude Code用の最適化
 1. **1ファイル = 1機能**: 設計書は機能ごとに分割
-2. **具体的なファイルパス**: 実装先のファイルパスを明記
-3. **型定義を含める**: TypeScriptの型・スキーマを設計書に記載
-4. **チェックリスト形式**: 実装完了を追跡できる形式
+2. **具体的なファイルパス**: 実装先を明記
+3. **型定義を含める**: TypeScriptスキーマを記載
+4. **チェックリスト形式**: 実装完了を追跡可能に
 
 ### 依存関係の明示
 - 他の機能への依存を設計書に記載
-- 既存コードとの関係を明記
 - 実装順序の推奨を含める
-
-### 段階的な実装への引き継ぎ
-1. DBスキーマ → マイグレーション
-2. Server Actions → ビジネスロジック
-3. UI → ユーザーインターフェース
-4. 結合テスト
